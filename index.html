@@ -45,6 +45,26 @@
     .bar-segment { animation: slideRight 1s ease-out forwards; position: relative; }
     .nv-legend-pill { transition: all 0.2s ease; }
     .nv-legend-pill:hover { background-color: rgba(30, 41, 59, 0.8); transform: translateY(-1px); }
+canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+#app-wrapper {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+/* เพิ่มพื้นที่บรรทัดให้ตัวอักษรภาษาไทยไม่โดนตัดสระ */
+.nv-legend-pill span {
+    line-height: 1.5 !important;
+    display: inline-block;
+}
+
+/* ปิดการตัดคำเฉพาะตอนที่จะ Export เพื่อให้เห็นคำเต็มและไม่บั๊ก */
+.export-mode .truncate {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+}
 
   </style>
  </head>
@@ -615,92 +635,96 @@ function updateRow(rowId, dataArray, colorClass = "") {
     }, 60000);
 
 async function exportDashboardHD() {
-        const overlay = document.getElementById('loading-overlay');
-        const captureArea = document.getElementById('app-wrapper');
+    const overlay = document.getElementById('loading-overlay');
+    const captureArea = document.querySelector('main'); // เปลี่ยนไปจับที่ส่วนเนื้อหาหลัก
+    const wrapper = document.getElementById('app-wrapper');
 
-        overlay.style.display = 'flex';
+    overlay.style.display = 'flex';
+    document.getElementById('loading-text').innerText = "กำลังปรับปรุงความคมชัด...";
 
-        // 1. ปรับกราฟให้นิ่งที่สุด
-        combinedChart.options.animation = false;
-        categoryChart.options.animation = false;
-        combinedChart.update();
-        categoryChart.update();
+    // 1. เตรียมกราฟและรอให้ Render นิ่ง
+    combinedChart.options.animation = false;
+    categoryChart.options.animation = false;
+    combinedChart.update();
+    categoryChart.update();
 
-        try {
-            window.scrollTo(0, 0);
-            await new Promise(resolve => setTimeout(resolve, 400)); // เพิ่มเวลารออีกนิด
+    // รอให้ Font และกราฟพร้อม
+    await document.fonts.ready;
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-            const canvas = await html2canvas(captureArea, {
-                scale: 3, 
-                useCORS: true,
-                backgroundColor: '#0f172a',
-                logging: false,
-                width: captureArea.scrollWidth,
-                height: captureArea.scrollHeight,
-                windowWidth: captureArea.scrollWidth,
-                windowHeight: captureArea.scrollHeight,
-                onclone: (clonedDoc) => {
-                    // จัดการพวก Fade-in ให้แสดงเต็ม 100%
-                    const fadeElements = clonedDoc.querySelectorAll('.fade-in');
-                    fadeElements.forEach(el => {
-                        el.style.opacity = '1';
-                        el.style.transform = 'translateY(0)';
-                        el.style.animation = 'none';
+    try {
+        // เลื่อนขึ้นบนสุดก่อนถ่าย
+        window.scrollTo(0, 0);
+
+        const canvas = await html2canvas(wrapper, {
+            scale: 2.5, // 2 กำลังดีสำหรับภาพขนาดใหญ่ ถ้า 3 อาจจะทำให้ Browser ค้างได้
+            useCORS: true,
+            backgroundColor: '#0f172a',
+            logging: false,
+            letterRendering: true,  // สำคัญ: กำหนดขนาดให้ครอบคลุมเนื้อหาทั้งหมดที่ scroll อยู่
+            width: wrapper.scrollWidth,
+            height: wrapper.scrollHeight,
+            windowWidth: wrapper.scrollWidth,
+            windowHeight: wrapper.scrollHeight,
+            onclone: (clonedDoc) => {
+                const clonedWrapper = clonedDoc.getElementById('app-wrapper');
+                // ปลดล็อกความสูงเพื่อให้เห็นเนื้อหาทั้งหมด ไม่ให้โดนตัด
+               clonedWrapper.classList.add('export-mode');
+                clonedWrapper.style.height = 'auto';
+                clonedWrapper.style.overflow = 'visible';
+                
+                // แก้ไขตัวหนังสือใน Legend ที่มักจะขาด
+                const labels = clonedDoc.querySelectorAll('.nv-legend-pill span, .stat-card p, .stat-card span');
+                labels.forEach(el => {
+                    el.style.lineHeight = "1.6"; // เพิ่มระยะบรรทัดในรูปภาพ
+                    el.style.display = "inline-block";
+                    el.classList.remove('truncate'); // ป้องกันการตัดคำจุดๆๆ
+                });
+
+                // แสดง Fade-in ทั้งหมด
+                clonedDoc.querySelectorAll('.fade-in').forEach(el => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'none';
+                    el.style.animation = 'none';
+                });
+
+                // แก้ไขช่องวันที่ให้เป็นข้อความ (เหมือนเดิมของคุณ)
+                const dateInput = clonedDoc.getElementById('date-selector');
+                if (dateInput) {
+                    const container = dateInput.closest('div');
+                    const dateValue = dateInput.value;
+                    const thaiDate = new Date(dateValue).toLocaleDateString('th-TH', {
+                        day: 'numeric', month: 'long', year: 'numeric'
                     });
-
-                    // --- จุดสำคัญ: แก้ไขวันที่ให้แสดงเป็นข้อความภาษาไทยแทนช่อง Input ---
-                    const dateInput = clonedDoc.getElementById('date-selector');
-                    if (dateInput) {
-                        // หา "กล่องสี่เหลี่ยม" ที่ครอบช่องวันที่อยู่
-                        const container = dateInput.closest('div'); 
-                        const dateValue = dateInput.value;
-                        
-                        // แปลงวันที่เป็นไทย (เช่น 23 มีนาคม 2567)
-                        const thaiDate = new Date(dateValue).toLocaleDateString('th-TH', {
-                            day: 'numeric', month: 'long', year: 'numeric'
-                        });
-
-                        // ล้างสิ่งที่อยู่ในกล่องออกให้หมด แล้วใส่ข้อความสวยๆ เข้าไปแทน
-                        container.innerHTML = `
-                            <span style="font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-right: 8px;">วันที่:</span>
-                            <span style="color: white; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;">${thaiDate}</span>
-                        `;
-                        
-                        // ปรับขนาดกล่องในรูปให้กว้างพอดีกับตัวอักษร
-                        container.style.width = "auto";
-                        container.style.minWidth = "max-content";
-                        container.style.display = "flex";
-                        container.style.alignItems = "center";
-                        container.style.padding = "10px 16px";
-                    }
-
-                    // ซ่อนปุ่ม Export ในรูป (ใช้ทั้ง opacity และ display เพื่อความชัวร์)
-                    const btn = clonedDoc.getElementById('btn-export');
-                    if(btn) {
-                        btn.style.display = 'none';
-                        btn.style.opacity = '0';
-                    }
+                    container.innerHTML = `
+                        <span style="font-size: 10px; color: #94a3b8; font-weight: bold; margin-right: 8px;">วันที่:</span>
+                        <span style="color: white; font-size: 14px; font-weight: 800;">${thaiDate}</span>
+                    `;
                 }
-            });
 
-            const imageData = canvas.toDataURL("image/png", 1.0);
-            const link = document.createElement('a');
-            const dateVal = document.getElementById('date-selector').value || 'report';
-            link.download = `CC_Dashboard_${dateVal}.png`;
-            link.href = imageData;
-            link.click();
+                // ซ่อนปุ่ม Export
+                const btn = clonedDoc.getElementById('btn-export');
+                if (btn) btn.style.display = 'none';
+            }
+        });
 
-        } catch (error) {
-            console.error("Export Error:", error);
-            alert("เกิดข้อผิดพลาดในการ Export รูปภาพ");
-        } finally {
-            // คืนค่ากราฟให้กลับมามี Animation ตามเดิม
-            combinedChart.options.animation = true;
-            categoryChart.options.animation = true;
-            overlay.style.display = 'none';
-        }
+        const imageData = canvas.toDataURL("image/png", 1.0);
+        const link = document.createElement('a');
+        const dateVal = document.getElementById('date-selector').value || 'report';
+        link.download = `CC_Dashboard_HD_${dateVal}.png`;
+        link.href = imageData;
+        link.click();
+
+    } catch (error) {
+        console.error("Export Error:", error);
+        alert("เกิดข้อผิดพลาดในการ Export");
+    } finally {
+        // คืนค่ากราฟ
+        combinedChart.options.animation = true;
+        categoryChart.options.animation = true;
+        overlay.style.display = 'none';
     }
-
+}
     // สั่งปุ่มทำงาน
     document.getElementById('btn-export').onclick = exportDashboardHD;
   </script>
