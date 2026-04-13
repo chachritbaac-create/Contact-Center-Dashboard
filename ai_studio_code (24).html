@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="th" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Center Dashboard - historical</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+.nv-segment { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; position: relative; }
+.nv-segment:hover { transform: translateY(-2px); filter: brightness(1.2); }
+      theme: {
+        extend: {
+          fontFamily: {
+            body: ['"IBM Plex Sans Thai"', '"DM Sans"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'IBM Plex Sans Thai', 'DM Sans', sans-serif; }
+    .stat-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
+    .fade-in { animation: fadeUp 0.5s ease forwards; opacity: 0; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .bar-fill { transition: width 1s ease-in-out; }
+    .ring { transition: stroke-dashoffset 1s ease-in-out; }
+    
+    .compact-table { width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed; }
+    .compact-table th, .compact-table td { border: 1px solid #334155; padding: 4px 1px; text-align: center; overflow: hidden; white-space: nowrap; }
+    .compact-table .label-col { text-align: left; padding-left: 6px; width: 115px; font-weight: 600; background-color: #1e293b; color: #94a3b8; }
+    .compact-table .total-col { width: 45px; background-color: #2563eb; color: white; font-weight: bold; }
+    @media (max-width: 1024px) { .compact-table { font-size: 8px; } .compact-table .label-col { width: 90px; } }
+    
+    /* Loading Overlay */
+    #loading-overlay { display:none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(15,23,42,0.7); z-index: 9999; justify-content: center; align-items: center; }
+
+  @keyframes slideRight { from { width: 0; opacity: 0; } to { opacity: 1; } }
+    .bar-segment { animation: slideRight 1s ease-out forwards; position: relative; }
+    .nv-legend-pill { transition: all 0.2s ease; }
+    .nv-legend-pill:hover { background-color: rgba(30, 41, 59, 0.8); transform: translateY(-1px); }
+
+  </style>
+ </head>
+ <body class="h-full bg-[#0f172a]">
+  
+ <div id="loading-overlay"><div id="loading-text" class="text-white font-bold animate-pulse text-xl">กำลังดึงข้อมูล...</div></div>
+
+  <div id="app-wrapper" class="h-full w-full overflow-auto">
+   
+   <header class="w-full px-4 sm:px-6 lg:px-8 pt-6 pb-4 fade-in">
+    <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+     <div>
+      <div class="flex items-center gap-3 mb-1">
+       <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #3b82f6, #6366f1);">
+        <i data-lucide="headphones" style="width:20px;height:20px;color:#fff;"></i>
+       </div>
+       <h1 class="text-2xl sm:text-3xl font-bold text-white uppercase tracking-tight">Contact Center Dashboard</h1>
+      </div>
+      <p id="report-period" class="text-sm ml-13 pl-[52px]" style="color: #64748b;">เลือกวันที่ต้องการตรวจสอบ</p>
+     </div>
+     
+     <div class="flex flex-col sm:flex-row items-center gap-3">
+ <!-- 1. ปุ่ม Export (ย้ายมาไว้หน้าสุด) -->
+    <button id="btn-export" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold py-2 px-3 rounded-lg transition-all border border-blue-400/30">
+    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+    <span class="uppercase">Export</span>
+</button>
+
+<!-- 2. ช่องเลือกวันที่ -->
+        <div class="flex items-center gap-2 bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-2">
+            <label class="text-[10px] text-slate-500 font-bold uppercase">เลือกวันที่:</label>
+            <input type="date" id="date-selector" class="bg-transparent text-white text-sm focus:outline-none cursor-pointer [color-scheme:dark]">
+        </div>
+
+<!-- 3. สถานะ Sync -->
+        <div id="status-badge" class="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full transition-colors duration-300">
+            <span id="sync-dot" class="w-2.5 h-2.5 rounded-full"></span> 
+            <span id="sync-text">Loading...</span>
+        </div>
+
+     </div>
+    </div>
+   </header>
+
+   <main class="w-full px-4 sm:px-6 lg:px-8 pb-8">
+    <div class="max-w-[1600px] mx-auto space-y-8">
+     
+     <!-- KPI OVERVIEW -->
+     <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 fade-in">
+       <div class="stat-card rounded-2xl p-4 sm:p-5 bg-[#1e293b] border border-[#334155]">
+        <div class="flex items-center gap-2 mb-3 text-slate-400">
+          <i data-lucide="phone-incoming" class="w-4 h-4"></i><span class="text-xs font-medium uppercase">Total Contacts</span>
+        </div>
+        <p id="val-total" class="text-2xl sm:text-3xl font-bold text-white">0</p>
+       </div>
+       <div class="stat-card rounded-2xl p-4 sm:p-5 bg-[#1e293b] border border-[#334155]">
+        <div class="flex items-center gap-2 mb-3 text-green-400">
+          <i data-lucide="smile" class="w-4 h-4"></i><span class="text-xs font-medium text-slate-400 uppercase">ความพึงพอใจ</span>
+        </div>
+        <p class="text-2xl sm:text-3xl font-bold text-white"><span id="val-csat">0.0</span><span class="text-lg">/5</span></p>
+       </div>
+       <div class="stat-card rounded-2xl p-4 sm:p-5 bg-[#1e293b] border border-[#334155]">
+        <div class="flex items-center gap-2 mb-3 text-amber-400">
+          <i data-lucide="phone-missed" class="w-4 h-4"></i><span class="text-xs font-medium text-slate-400 uppercase">ABD (Abandoned)</span>
+        </div>
+        <p class="text-2xl sm:text-3xl font-bold text-white"><span id="val-abd">0</span><span class="text-lg"></span></p>
+       </div>
+       <div class="stat-card rounded-2xl p-4 sm:p-5 bg-[#1e293b] border border-[#334155]">
+        <div class="flex items-center gap-2 mb-3 text-purple-400">
+          <i data-lucide="check-circle" class="w-4 h-4"></i><span class="text-xs font-medium text-slate-400 uppercase">คะแนน QC</span>
+        </div>
+        <p class="text-2xl sm:text-3xl font-bold text-white"><span id="val-qc">0</span><span class="text-lg"></span></p>
+       </div>
+     </section>
+
+     <!-- VOICE CHANNEL SUMMARY -->
+     <section class="fade-in">
+      <div class="flex items-center gap-3 mb-4">
+       <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-blue-600">
+        <i data-lucide="phone" class="w-4 h-4 text-white"></i>
+       </div>
+       <h2 class="text-lg font-bold text-slate-200">Voice Channel Status</h2>
+       <div class="flex-1 h-px bg-slate-700"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+           <!-- Inbound -->
+           <div class="stat-card rounded-2xl p-5 bg-[#1e293b] border border-[#334155]">
+            <p class="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">Inbound Status</p>
+            <div id="v-in-total" class="text-3xl font-bold text-white mb-4">0</div>
+            <div class="space-y-3">
+             <div>
+              <div class="flex justify-between text-[10px] mb-1"><span class="text-slate-400 uppercase font-bold">Answered</span> <span id="v-in-ans-txt" class="text-green-400 font-bold">0</span></div>
+              <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="v-in-ans-bar" class="h-full bg-green-500 bar-fill" style="width: 0%"></div></div>
+             </div>
+             <div>
+              <div class="flex justify-between text-[10px] mb-1"><span class="text-slate-400 uppercase font-bold">Abandoned</span> <span id="v-in-abd-txt" class="text-red-400 font-bold">0</span></div>
+              <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="v-in-abd-bar" class="h-full bg-red-500 bar-fill" style="width: 0%"></div></div>
+             </div>
+            </div>
+           </div>
+
+           <!-- Outbound -->
+           <div class="stat-card rounded-2xl p-5 bg-[#1e293b] border border-[#334155]">
+            <p class="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">Outbound Status</p>
+            <div id="v-out-total" class="text-3xl font-bold text-white mb-4">0</div>
+            <div class="space-y-3">
+             <div>
+              <div class="flex justify-between text-[10px] mb-1"><span class="text-slate-400 uppercase font-bold">Connected</span> <span id="v-out-conn-txt" class="text-blue-400 font-bold">0</span></div>
+              <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="v-out-conn-bar" class="h-full bg-blue-500 bar-fill" style="width: 0%"></div></div>
+             </div>
+             <div>
+              <div class="flex justify-between text-[10px] mb-1"><span class="text-slate-400 uppercase font-bold">No Answer</span> <span id="v-out-noans-txt" class="text-amber-400 font-bold">0</span></div>
+              <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="v-out-noans-bar" class="h-full bg-amber-500 bar-fill" style="width: 0%"></div></div>
+             </div>
+            </div>
+           </div>
+
+<!-- SL -->
+<div class="stat-card rounded-2xl p-5 bg-[#1e293b] border border-[#334155] flex flex-col items-center justify-center">
+ <div class="relative flex items-center justify-center mb-4">
+  <svg width="100" height="100" viewbox="0 0 120 120">
+   <circle cx="60" cy="60" r="50" fill="none" stroke="#334155" stroke-width="10" /> 
+   <circle id="sl-ring" cx="60" cy="60" r="50" fill="none" stroke="#3b82f6" stroke-width="10" stroke-dasharray="314.16" stroke-dashoffset="314.16" transform="rotate(-90 60 60)" class="ring" /> 
+   
+   <!-- หัวข้อ: อยู่กึ่งกลางค่อนบน -->
+   <text x="60" y="50" text-anchor="middle" fill="#64748b" font-size="10" font-weight="bold" style="text-transform: uppercase;">Service Level</text>
+   
+   <!-- ตัวเลข SL%: อยู่กึ่งกลางค่อนล่าง -->
+   <text id="sl-val" x="60" y="80" text-anchor="middle" fill="#f1f5f9" font-size="22" font-weight="bold">0%</text>
+  </svg>
+ </div>
+ <div class="flex gap-4 w-full text-[10px] text-slate-400 font-bold">
+  <div class="flex-1 text-center uppercase tracking-widest">Wait: <span id="v-wait" class="text-white">0:00</span></div>
+  <div class="flex-1 text-center uppercase tracking-widest">Talk: <span id="v-talk" class="text-white">0:00</span></div>
+ </div>
+</div>
+      </div>
+     </section>
+
+     <!-- HOURLY PERFORMANCE -->
+     <section class="fade-in space-y-4">
+      <div class="flex items-center gap-3">
+       <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-purple-600">
+        <i data-lucide="trending-up" class="w-4 h-4 text-white"></i>
+       </div>
+       <h2 class="text-lg font-bold text-slate-200">Hourly Performance</h2>
+       <div class="flex-1 h-px bg-slate-700"></div>
+      </div>
+      
+      <div class="rounded-2xl p-5 bg-[#1e293b] border border-[#334155]">
+       <div class="h-[300px]"><canvas id="combinedChart"></canvas></div>
+      </div>
+
+      <div class="rounded-2xl bg-[#1e293b] border border-[#334155] overflow-hidden p-2">
+            <table class="compact-table">
+              <thead>
+                <tr id="row-header-time" class="bg-slate-800 text-slate-400">
+                  <th class="label-col">เวลา</th>
+                  <script>
+                    const customTimes = [];
+                    for(let i=0; i<24; i++) {
+                      customTimes.push(`${i}:00`);
+                      if(i === 8) customTimes.push(`8:30`);
+                      if(i === 16) customTimes.push(`16:30`);
+                    }
+                    customTimes.forEach(t => document.write(`<th>${t}</th>`));
+                  </script>
+                  <th class="total-col">รวม</th>
+                </tr>
+              </thead>
+              <tbody class="text-slate-300">
+                <tr id="row-inbound"> <td class="label-col">ปริมาณสายเข้า</td> </tr>
+                <tr id="row-answered"> <td class="label-col">ปริมาณรับได้</td> </tr>
+                <tr id="row-abandoned"> <td class="label-col">ปริมาณรับไม่ได้</td> </tr>
+                <tr id="row-agents"> <td class="label-col">Agent รับสาย</td> </tr>
+                <tr id="row-break"> <td class="label-col">Agent พัก</td> </tr>
+              </tbody>
+            </table>
+      </div>
+     </section>
+
+     <!-- CATEGORY & NON-VOICE -->
+     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 fade-in">
+        <section class="rounded-2xl p-5 bg-[#1e293b] border border-[#334155]">
+  <div class="flex justify-between items-center mb-6">
+      <h2 class="text-sm font-bold text-slate-400 uppercase flex items-center gap-2">
+        <i data-lucide="pie-chart" class="w-4 h-4 text-blue-400"></i> Daily Inbound Category
+      </h2>
+      <span class="text-[9px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">Daily</span>
+  </div>
+  <div class="h-[280px]"><canvas id="categoryChart"></canvas></div>
+</section>
+        <section class="rounded-2xl p-5 bg-[#1e293b] border border-[#334155]">
+            <h2 class="text-sm font-bold text-slate-400 uppercase mb-6 flex items-center gap-2">
+                <i data-lucide="message-square" class="text-green-400 w-4 h-4"></i> Non-Voice Summary
+            </h2>
+            <div id="nv-container" class="grid grid-cols-2 gap-4"></div>
+            <div class="mt-8">
+                <p class="text-[10px] text-slate-500 mb-3 uppercase font-bold tracking-widest">สัดส่วนช่องทาง Non-Voice (%)</p>
+                <div id="nv-bar" class="flex w-full h-10 rounded-xl overflow-hidden bg-slate-800 shadow-inner"></div>
+            </div>
+        </section>
+     </div>
+
+     <!-- OUTBOUND REPORT -->
+     <section class="fade-in pb-10">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500 shadow-lg shadow-amber-500/20">
+                <i data-lucide="phone-outgoing" class="w-5 h-5 text-white"></i>
+            </div>
+            <h2 class="text-lg font-bold text-slate-200">Outbound Report</h2>
+            <div class="flex-1 h-px bg-slate-700/50"></div>
+        </div>
+        <div id="ob-report-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+     </section>
+
+    </div>
+   </main>
+   
+   <footer class="text-center py-6 text-slate-600 text-[10px]">
+    ข้อมูล ณ วันที่: <span id="last-updated">-</span>
+   </footer>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxxOQnTR5qIXEats4yX0CZCYufZSMRdklP6NtrOSay2bvzFiG2zsz379ffFPh18C8Xsvg/exec";
+    const nvIconMap = { 
+    'Facebook': 'facebook',
+    'Facebook ธนาคาร': 'facebook',
+    "BAAC's Mobile Application": 'smartphone',
+    'Live Chat': 'messages-square',
+    'E-mail (contact@baac.or.th)': 'mail',
+    'Website ธ.ก.ส. (baac.or.th)': 'globe'
+};
+
+const nvColors = { 
+    'Facebook': '#1877f2',
+    'Facebook ธนาคาร': '#0866ff',
+    "BAAC's Mobile Application": '#22c55e', // สีเขียวสไตล์ App ธนาคาร
+    'Live Chat': '#8b5cf6',
+    'E-mail (contact@baac.or.th)': '#f43f5e',
+    'Website ธ.ก.ส. (baac.or.th)': '#06b6d4'
+};
+
+const nvShortNames = { 
+    'Facebook': 'FACEBOOK', // ชื่อหลักที่จะใช้แสดงหลังรวมกลุ่ม
+    "BAAC's Mobile Application": 'APP',
+    'Live Chat': 'CHAT',
+    'E-mail (contact@baac.or.th)': 'EMAIL',
+    'Website ธ.ก.ส. (baac.or.th)': 'WEB'
+};
+
+    Chart.register(ChartDataLabels);
+    lucide.createIcons();
+
+// --- เปลี่ยนเป็นชุดนี้ ---
+const dateSelector = document.getElementById('date-selector');
+const now = new Date();
+const todayStr = now.toISOString().split('T')[0]; 
+
+const yesterday = new Date(now);
+yesterday.setDate(now.getDate() - 1);
+const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+dateSelector.value = yesterdayStr;
+
+// *** เพิ่มบรรทัดนี้เพื่อให้เปลี่ยนวันที่แล้วดึงข้อมูล ***
+dateSelector.addEventListener('change', () => sync(true)); 
+
+    // Time Labels (26 slots)
+    const timeLabels = [];
+    for(let i=0; i<24; i++) {
+        timeLabels.push(`${i}:00`);
+        if(i === 8) timeLabels.push(`8:30`);
+        if(i === 16) timeLabels.push(`16:30`);
+    }
+
+    // Chart Initialization
+    const combinedChart = new Chart(document.getElementById('combinedChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: timeLabels,
+            datasets: [
+                { label: 'Inbound', type: 'line', data: Array(26).fill(0), borderColor: '#3b82f6', tension: 0.3, pointRadius: 2 },
+                { label: 'Answered', type: 'line', data: Array(26).fill(0), borderColor: '#22c55e', tension: 0.3, pointRadius: 2 },
+                { label: 'Abandoned', type: 'line', data: Array(26).fill(0), borderColor: '#ef4444', tension: 0.3, pointRadius: 2 },
+                { label: 'Agents Online', data: Array(26).fill(0), backgroundColor: 'rgba(71, 85, 105, 0.4)', yAxisID: 'y1' }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { 
+                y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, 
+                y1: { position: 'right', display: false },
+                x: { ticks: { color: '#94a3b8', font: { size: 9 } } }
+            },
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } }, datalabels: { display: false } }
+        }
+    });
+
+    const categoryChart = new Chart(document.getElementById('categoryChart').getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: [], datasets: [{ data: [], backgroundColor: ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#06b6d4'], borderWidth: 0 }] },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '75%',
+            plugins: {
+                legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 } } },
+                datalabels: {
+                    color: '#fff', font: { weight: 'bold', size: 10 },
+                    formatter: (value, ctx) => {
+                        let sum = 0; ctx.chart.data.datasets[0].data.map(d => sum += d);
+                        return (value * 100 / (sum || 1)).toFixed(1) + "%";
+                    }
+                }
+            }
+        }
+    });
+
+function formatTime(val) {
+    if (!val || val === "0") return "0:00";
+    
+    // ถ้าข้อมูลส่งมาเป็น String (จาก DisplayValues) ให้โชว์ค่านั้นเลย
+    if (typeof val === 'string') {
+        // กรณีถ้ามีวันที่ติดมา (กันพลาด) ให้ตัดออกเอาแต่เวลา
+        if (val.includes('T')) {
+            return val.split('T')[1].split('.')[0].substring(0, 5);
+        }
+        return val; // คืนค่าตามที่พิมพ์ใน Sheet เช่น 02:30
+    }
+
+    return "0:00";
+}
+
+// ส่วนของฟังก์ชัน updateBadge คงเดิมไว้ได้เลย
+function updateBadge(selectedDate) {
+    const badge = document.getElementById('status-badge');
+    const dot = document.getElementById('sync-dot');
+    const txt = document.getElementById('sync-text');
+    
+    if (selectedDate === todayStr) {
+        badge.style.background = "rgba(34,197,94,0.15)";
+        badge.style.color = "#4ade80";
+        dot.className = "w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse";
+        txt.innerText = "Live Update";
+    } else {
+        badge.style.background = "rgba(59,130,246,0.15)";
+        badge.style.color = "#60a5fa";
+        dot.className = "w-2.5 h-2.5 rounded-full bg-blue-400";
+        txt.innerText = "Historical Data";
+    }
+}
+async function sync(showLoading = false) {
+    if(showLoading) document.getElementById('loading-overlay').style.display = 'flex';
+    
+    try {
+        const selectedDate = dateSelector.value;
+        const res = await fetch(`${API_URL}?date=${selectedDate}`);
+        const data = await res.json();
+
+        // 1. KPI 4 ตัวบน = รายเดือน (Monthly)
+        const m = data.monthlySummary || data.summary;
+        document.getElementById('val-total').innerText = (m.total || 0).toLocaleString();
+        document.getElementById('val-csat').innerText = (m.csat || 0).toFixed(1);
+        document.getElementById('val-abd').innerText = (m.abd || 0).toFixed(1) + "%";
+        document.getElementById('val-qc').innerText = (m.qc || 0).toFixed(1) + "%";
+
+
+        // ==========================================
+        // 2. ส่วน VOICE CHANNEL (ดึงจาก DAILY SUMMARY)
+        // ==========================================
+        const d = data.summary;
+        const inT = d.inboundTotal || 1;
+        document.getElementById('v-in-total').innerText = inT.toLocaleString();
+        document.getElementById('v-in-ans-txt').innerText = `${d.inboundAns} (${(d.inboundAns/inT*100).toFixed(1)}%)`;
+        document.getElementById('v-in-ans-bar').style.width = (d.inboundAns/inT*100) + '%';
+        document.getElementById('v-in-abd-txt').innerText = `${d.inboundAbd} (${(d.inboundAbd/inT*100).toFixed(1)}%)`;
+        document.getElementById('v-in-abd-bar').style.width = (d.inboundAbd/inT*100) + '%';
+        
+        const outT = d.outboundTotal || 1;
+        const outC = d.outboundConn || 0;
+        const outN = Math.max(0, outT - outC);
+        document.getElementById('v-out-total').innerText = outT.toLocaleString();
+        document.getElementById('v-out-conn-txt').innerText = `${outC} (${(outC/outT*100).toFixed(1)}%)`;
+        document.getElementById('v-out-conn-bar').style.width = (outC/outT*100) + '%';
+        document.getElementById('v-out-noans-txt').innerText = `${outN} (${(outN/outT*100).toFixed(1)}%)`;
+        document.getElementById('v-out-noans-bar').style.width = (outN/outT*100) + '%';
+
+        const slPercent = d.sl || 0;
+        document.getElementById('sl-val').textContent = slPercent.toFixed(1) + '%';
+        document.getElementById('sl-ring').style.strokeDashoffset = 314.16 - (314.16 * slPercent / 100);
+        document.getElementById('v-wait').innerText = formatTime(d.avgWait);
+        document.getElementById('v-talk').innerText = formatTime(d.avgTalk);
+
+
+        // ==========================================
+        // 3. ส่วนกราฟและตาราง (ดึงจาก HOURLY/CATEGORIES รายวัน)
+        // ==========================================
+        combinedChart.data.datasets[0].data = data.hourly.inbound;
+        combinedChart.data.datasets[1].data = data.hourly.answered;
+        combinedChart.data.datasets[2].data = data.hourly.abandoned;
+        combinedChart.data.datasets[3].data = data.hourly.online;
+        combinedChart.update();
+
+        // อัปเดตตารางด้านล่างกราฟ
+        updateRow('row-inbound', data.hourly.inbound);
+        updateRow('row-answered', data.hourly.answered, 'text-green-400');
+        updateRow('row-abandoned', data.hourly.abandoned, 'text-red-400');
+        updateRow('row-agents', data.hourly.online, 'text-blue-400');
+        updateRow('row-break', data.hourly.break || Array(26).fill(0), 'text-amber-400');
+
+// ส่วนดึงหมวดหมู่ (Category Chart) - แสดงผลรายวันและแยกสี ABD
+        if (data.categories && data.categories.labels) {
+            const categoryColors = data.categories.labels.map(label => {
+                // ถ้าชื่อหมวดหมู่มีคำว่า ABD ให้เป็นสีแดง
+                if (label.toUpperCase().includes('ABD') || label.includes('รับไม่ได้')) {
+                    return '#ef4444'; 
+                }
+                const defaultPalette = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4'];
+                const index = data.categories.labels.indexOf(label);
+                return defaultPalette[index % defaultPalette.length];
+            });
+
+            categoryChart.data.labels = data.categories.labels;
+            categoryChart.data.datasets[0].data = data.categories.values;
+            categoryChart.data.datasets[0].backgroundColor = categoryColors;
+            categoryChart.update();
+        }
+
+/// 4. Non-Voice Summary (แก้ไขเรื่องการคำนวณตัวเลข)
+if (data.nonvoice && data.nonvoice.length > 0) {
+    // --- STEP 1: รวมข้อมูลและแปลงเป็นตัวเลขให้ถูกต้อง ---
+    const aggregatedData = data.nonvoice.reduce((acc, current) => {
+        const isFacebook = current.channel.toLowerCase().includes('facebook');
+        const key = isFacebook ? 'Facebook' : current.channel;
+        
+        // บังคับให้เป็นตัวเลขด้วย Number()
+        const countValue = Number(current.count) || 0;
+
+        if (!acc[key]) {
+            acc[key] = { channel: key, count: countValue };
+        } else {
+            acc[key].count += countValue;
+        }
+        return acc;
+    }, {});
+
+    const finalNV = Object.values(aggregatedData);
+    
+    // คำนวณยอดรวมทั้งหมด (ใช้ Number เพื่อความชัวร์)
+    const totalNV = finalNV.reduce((acc, curr) => acc + curr.count, 0);
+    const sortedNV = [...finalNV].sort((a, b) => b.count - a.count);
+
+    // --- STEP 2: แสดง Cards ---
+    document.getElementById('nv-container').innerHTML = sortedNV.map(n => {
+        const color = nvColors[n.channel] || '#64748b';
+        const icon = nvIconMap[n.channel] || 'message-circle';
+        const shortName = nvShortNames[n.channel] || n.channel;
+        const pct = totalNV > 0 ? (n.count / totalNV * 100).toFixed(1) : "0.0";
+        
+        return `
+            <div class="p-3 bg-[#0f172a]/40 rounded-2xl border border-slate-800 flex flex-col items-center relative overflow-hidden group">
+                <div class="absolute top-2 right-2 text-[10px] font-black italic" style="color: ${color}">${pct}%</div>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-2" style="background: ${color}15; border: 1px solid ${color}30;">
+                    <i data-lucide="${icon}" style="color: ${color}; width: 20px; height: 20px;"></i>
+                </div>
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-tighter text-center">${shortName}</p>
+                <p class="text-xl font-black text-white leading-none">${n.count.toLocaleString()}</p>
+            </div>`;
+    }).join('');
+
+    // --- STEP 3: แสดง Progress Bar ---
+    const barContainer = document.getElementById('nv-bar');
+    barContainer.className = "flex w-full h-10 rounded-2xl overflow-hidden bg-slate-900/50 p-1 border border-slate-800 shadow-inner mt-4";
+    
+    if (totalNV > 0) {
+        barContainer.innerHTML = sortedNV.map(n => {
+            const pct = (n.count / totalNV * 100).toFixed(1);
+            const color = nvColors[n.channel] || '#475569';
+            if (parseFloat(pct) < 0.1) return ''; 
+            return `<div style="width: ${pct}%; background: ${color};" class="h-full border-r border-black/10 first:rounded-l-xl last:rounded-r-xl"></div>`;
+        }).join('');
+    }
+
+    // --- STEP 4: รายการสรุปด้านล่าง ---
+    let legendId = 'nv-legend-pills';
+    let legendBox = document.getElementById(legendId);
+    if (!legendBox) {
+        legendBox = document.createElement('div');
+        legendBox.id = legendId;
+        legendBox.className = "grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4";
+        barContainer.parentNode.appendChild(legendBox);
+    }
+    
+    legendBox.innerHTML = sortedNV.map(n => {
+        const color = nvColors[n.channel] || '#64748b';
+        const pct = totalNV > 0 ? (n.count / totalNV * 100).toFixed(1) : "0.0";
+        return `
+            <div class="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-[#0f172a]/30 border border-slate-800/50">
+                <div class="w-1.5 h-1.5 rounded-full" style="background-color: ${color}"></div>
+                <span class="text-[9px] font-bold text-slate-400 uppercase truncate">${nvShortNames[n.channel] || n.channel}</span>
+                <span class="ml-auto text-[10px] font-black text-slate-200">${pct}%</span>
+            </div>`;
+    }).join('');
+}
+
+            // 5. Outbound
+            if(data.outboundDetail) {
+                document.getElementById('ob-report-grid').innerHTML = data.outboundDetail.map((ob, idx) => {
+                    const connPct = (ob.conn / (ob.total || 1) * 100).toFixed(1);
+                    const noansPct = (ob.noans / (ob.total || 1) * 100).toFixed(1);
+                    return `
+                    <div class="stat-card rounded-2xl p-6 bg-[#1e293b] border border-[#334155]">
+                        <div class="flex justify-between items-center mb-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center border border-slate-700">
+                                    <span class="text-xs font-bold text-blue-400">${idx+1}</span>
+                                </div>
+                                <h3 class="font-bold text-slate-200 uppercase text-sm tracking-tight">${ob.source}</h3>
+                            </div>
+                            <span class="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded font-bold border border-blue-500/20">${ob.total.toLocaleString()} สาย</span>
+                        </div>
+                        <div class="space-y-5">
+                            <div>
+                                <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-400">Connected</span><span class="text-green-400 font-bold">${ob.conn.toLocaleString()}</span></div>
+                                <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden shadow-inner"><div class="h-full bg-green-500 bar-fill" style="width: ${connPct}%"></div></div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-400">No Answer</span><span class="text-red-400 font-bold">${ob.noans.toLocaleString()}</span></div>
+                                <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden shadow-inner"><div class="h-full bg-red-400/80 bar-fill" style="width: ${noansPct}%"></div></div>
+                            </div>
+                            <div class="bg-[#0f172a] p-4 rounded-xl border border-slate-800/50 mt-2">
+                                <p class="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-wider">Success Rate</p>
+                                <p class="text-2xl font-bold text-green-400">${connPct}%</p>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            lucide.createIcons();
+            document.getElementById('last-updated').innerText = new Date().toLocaleString('th-TH');
+        } catch (e) { 
+            console.error("Sync Error:", e); 
+        } finally {
+            if(showLoading) document.getElementById('loading-overlay').style.display = 'none';
+        }
+    }
+// ฟังก์ชันเสริมสำหรับอัปเดตแถวในตาราง (ถ้าในโค้ดเดิมคุณแยกไว้ข้างนอก)
+function updateRow(rowId, dataArray, colorClass = "") {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    let html = `<td class="label-col">${row.cells[0].innerText}</td>`, sum = 0;
+    for (let i = 0; i < 26; i++) {
+        const val = dataArray[i] || 0; sum += val; html += `<td>${val}</td>`;
+    }
+    html += `<td class="bg-slate-800 font-bold ${colorClass}">${sum.toLocaleString()}</td>`;
+    row.innerHTML = html;
+}
+    // Initial sync
+    sync(true);
+
+    // Auto-refresh every 1 min (only if today is selected)
+    setInterval(() => {
+        if (dateSelector.value === todayStr) {
+            sync(false);
+        }
+    }, 60000);
+
+async function exportDashboardHD() {
+        const overlay = document.getElementById('loading-overlay');
+        const captureArea = document.getElementById('app-wrapper');
+
+        overlay.style.display = 'flex';
+
+        // 1. ปรับกราฟให้นิ่งที่สุด
+        combinedChart.options.animation = false;
+        categoryChart.options.animation = false;
+        combinedChart.update();
+        categoryChart.update();
+
+        try {
+            window.scrollTo(0, 0);
+            await new Promise(resolve => setTimeout(resolve, 400)); // เพิ่มเวลารออีกนิด
+
+            const canvas = await html2canvas(captureArea, {
+                scale: 3, 
+                useCORS: true,
+                backgroundColor: '#0f172a',
+                logging: false,
+                width: captureArea.scrollWidth,
+                height: captureArea.scrollHeight,
+                windowWidth: captureArea.scrollWidth,
+                windowHeight: captureArea.scrollHeight,
+                onclone: (clonedDoc) => {
+                    // จัดการพวก Fade-in ให้แสดงเต็ม 100%
+                    const fadeElements = clonedDoc.querySelectorAll('.fade-in');
+                    fadeElements.forEach(el => {
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0)';
+                        el.style.animation = 'none';
+                    });
+
+                    // --- จุดสำคัญ: แก้ไขวันที่ให้แสดงเป็นข้อความภาษาไทยแทนช่อง Input ---
+                    const dateInput = clonedDoc.getElementById('date-selector');
+                    if (dateInput) {
+                        // หา "กล่องสี่เหลี่ยม" ที่ครอบช่องวันที่อยู่
+                        const container = dateInput.closest('div'); 
+                        const dateValue = dateInput.value;
+                        
+                        // แปลงวันที่เป็นไทย (เช่น 23 มีนาคม 2567)
+                        const thaiDate = new Date(dateValue).toLocaleDateString('th-TH', {
+                            day: 'numeric', month: 'long', year: 'numeric'
+                        });
+
+                        // ล้างสิ่งที่อยู่ในกล่องออกให้หมด แล้วใส่ข้อความสวยๆ เข้าไปแทน
+                        container.innerHTML = `
+                            <span style="font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; margin-right: 8px;">วันที่:</span>
+                            <span style="color: white; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;">${thaiDate}</span>
+                        `;
+                        
+                        // ปรับขนาดกล่องในรูปให้กว้างพอดีกับตัวอักษร
+                        container.style.width = "auto";
+                        container.style.minWidth = "max-content";
+                        container.style.display = "flex";
+                        container.style.alignItems = "center";
+                        container.style.padding = "10px 16px";
+                    }
+
+                    // ซ่อนปุ่ม Export ในรูป (ใช้ทั้ง opacity และ display เพื่อความชัวร์)
+                    const btn = clonedDoc.getElementById('btn-export');
+                    if(btn) {
+                        btn.style.display = 'none';
+                        btn.style.opacity = '0';
+                    }
+                }
+            });
+
+            const imageData = canvas.toDataURL("image/png", 1.0);
+            const link = document.createElement('a');
+            const dateVal = document.getElementById('date-selector').value || 'report';
+            link.download = `CC_Dashboard_${dateVal}.png`;
+            link.href = imageData;
+            link.click();
+
+        } catch (error) {
+            console.error("Export Error:", error);
+            alert("เกิดข้อผิดพลาดในการ Export รูปภาพ");
+        } finally {
+            // คืนค่ากราฟให้กลับมามี Animation ตามเดิม
+            combinedChart.options.animation = true;
+            categoryChart.options.animation = true;
+            overlay.style.display = 'none';
+        }
+    }
+
+    // สั่งปุ่มทำงาน
+    document.getElementById('btn-export').onclick = exportDashboardHD;
+  </script>
+ </body>
+</html>
