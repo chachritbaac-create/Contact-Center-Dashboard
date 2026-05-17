@@ -110,42 +110,96 @@
 
         <main class="w-full px-4 sm:px-6 lg:px-8">
             <div class="max-w-full mx-auto space-y-8">
-                <!-- KPI OVERVIEW -->
-<section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 fade-in">
-    <!-- Contacts -->
-    <div class="stat-card rounded-2xl p-5 bg-white dark:bg-black border border-slate-200 dark:border-zinc-800 shadow-sm">
-        <div class="flex items-center gap-2 mb-3 text-slate-400">
-            <i data-lucide="phone-incoming" class="w-4 h-4"></i><span class="text-lg font-black uppercase">Total Contacts</span>
+<!-- KPI OVERVIEW - MODERN BOTTOM TARGET STYLE -->
+<section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 fade-in">
+    
+    <!-- Contacts: Blue Theme -->
+    <div class="stat-card group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-blue-500/5 flex flex-col">
+        <div class="p-6 flex-1">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-2.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:bg-blue-500/20"><i data-lucide="phone-incoming" class="w-5 h-5"></i></div>
+                <span class="text-lg font-black uppercase">Total Contacts</span>
+            </div>
+            <p id="val-total" class="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">0</p>
         </div>
-        <p id="val-total" class="text-3xl font-bold text-slate-800 dark:text-white">0</p>
-    </div>
-    <!-- CSAT -->
-    <div class="stat-card rounded-2xl p-5 bg-white dark:bg-black border border-slate-200 dark:border-zinc-800 shadow-sm">
-        <div class="flex items-center gap-2 mb-3 text-green-400">
-            <i data-lucide="smile" class="w-4 h-4"></i><span class="text-lg] font-black uppercase">ความพึงพอใจ</span>
+        <!-- Goal Footer -->
+        <div class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-t border-blue-100/50 dark:border-blue-800/50">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase">Target Goal</span>
+                <span id="target-total" class="text-xs font-black text-blue-600 dark:text-blue-400">1,200</span>
+            </div>
         </div>
-        <p class="text-3xl font-bold text-slate-800 dark:text-white"><span id="val-csat">0.0</span><span class="text-sm font-normal text-slate-500">/5</span></p>
-    </div>
-    <!-- Abandoned -->
-    <div class="stat-card rounded-2xl p-5 bg-white dark:bg-black border border-slate-200 dark:border-zinc-800 shadow-sm">
-        <div class="flex items-center gap-2 mb-3 text-red-400">
-            <i data-lucide="phone-missed" class="w-4 h-4"></i><span class="text-lg font-black uppercase">Abandoned</span>
-        </div>
-        <p id="val-abd" class="text-3xl font-bold text-slate-800 dark:text-white">0%</p>
-    </div>
-    <div class="stat-card rounded-2xl p-5 bg-white dark:bg-black border border-slate-200 dark:border-zinc-800 shadow-sm">
-        <div class="flex items-center gap-2 mb-3 text-purple-400">
-            <i data-lucide="mic" class="w-4 h-4"></i><span class="text-lg font-black uppercase">QC Score (Voice)</span>
-        </div>
-        <p id="val-qc-voice" class="text-3xl font-bold">0%</p>
     </div>
 
-    <!-- กล่อง QC Non-Voice -->
-    <div class="stat-card rounded-2xl p-5 bg-white dark:bg-black border border-slate-200 dark:border-zinc-800 shadow-sm">
-        <div class="flex items-center gap-2 mb-3 text-indigo-400">
-            <i data-lucide="message-square" class="w-4 h-4"></i><span class="text-lg font-black uppercase">QC Score (Non-Voice)</span>
+    <!-- CSAT: Green Theme -->
+    <div class="stat-card group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-emerald-500/5 flex flex-col">
+        <div class="p-6 flex-1">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20"><i data-lucide="smile" class="w-5 h-5"></i></div>
+                <span class="text-xl] font-black uppercase">ความพึงพอใจ</span>
+            </div>
+            <div class="flex items-baseline gap-1">
+                <p id="val-csat" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-600 to-teal-500 tracking-tighter">0.0</p>
+                <span class="text-sm font-bold text-slate-400">/5</span>
+            </div>
         </div>
-        <p id="val-qc-nv" class="text-3xl font-bold">0%</p>
+        <div class="px-6 py-3 bg-emerald-50/50 dark:bg-emerald-900/20 border-t border-emerald-100/50 dark:border-emerald-800/50">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black text-emerald-600/60 dark:text-emerald-400/60 uppercase">Target Goal</span>
+                <span id="target-csat" class="text-xs font-black text-emerald-600 dark:text-emerald-400">4.5</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Abandoned: Red Theme -->
+    <div class="stat-card group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-rose-500/5 flex flex-col">
+        <div class="p-6 flex-1">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-2.5 rounded-2xl bg-rose-500/10 text-rose-600 dark:bg-rose-500/20"><i data-lucide="phone-missed" class="w-5 h-5"></i></div>
+                </i><span class="text-lg font-black uppercase">Abandoned</span>
+            </div>
+            <p id="val-abd" class="text-4xl font-black text-rose-500 tracking-tighter">0%</p>
+        </div>
+        <div class="px-6 py-3 bg-rose-50/50 dark:bg-rose-900/20 border-t border-rose-100/50 dark:border-rose-800/50">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black text-rose-600/60 dark:text-rose-400/60 uppercase">Threshold</span>
+                <span id="target-abd" class="text-xs font-black text-rose-600 dark:text-rose-400">&lt; 3%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- QC Voice: Purple Theme -->
+    <div class="stat-card group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-purple-500/5 flex flex-col">
+        <div class="p-6 flex-1">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-2.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:bg-purple-500/20"><i data-lucide="mic" class="w-5 h-5"></i></div>
+               <span class="text-lg font-black uppercase">QC Score (Voice)</span>
+            </div>
+            <p id="val-qc-voice" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-purple-600 to-indigo-500 tracking-tighter">0%</p>
+        </div>
+        <div class="px-6 py-3 bg-purple-50/50 dark:bg-purple-900/20 border-t border-purple-100/50 dark:border-purple-800/50">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black text-purple-600/60 dark:text-purple-400/60 uppercase">Benchmark</span>
+                <span id="target-qc-voice" class="text-xs font-black text-purple-600 dark:text-purple-400">90%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- QC Non-Voice: Indigo Theme -->
+    <div class="stat-card group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-indigo-500/5 flex flex-col">
+        <div class="p-6 flex-1">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20"><i data-lucide="message-square" class="w-5 h-5"></i></div>
+                <span class="text-lg font-black uppercase">QC Score (Non-Voice)</span>
+            </div>
+            <p id="val-qc-nv" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-600 to-blue-500 tracking-tighter">0%</p>
+        </div>
+        <div class="px-6 py-3 bg-indigo-50/50 dark:bg-indigo-900/20 border-t border-indigo-100/50 dark:border-indigo-800/50">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black text-indigo-600/60 dark:text-indigo-400/60 uppercase">Benchmark</span>
+                <span id="target-qc-nv" class="text-xs font-black text-indigo-600 dark:text-indigo-400">90%</span>
+            </div>
+        </div>
     </div>
 </section>
 
