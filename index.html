@@ -111,16 +111,29 @@
         <main class="w-full px-4 sm:px-6 lg:px-8">
             <div class="max-w-full mx-auto space-y-8">
 <!-- KPI OVERVIEW - MODERN BOTTOM TARGET STYLE -->
-<section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 fade-in">
+<section class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 fade-in">
     
-    <!-- Contacts: Blue Theme -->
+<!-- Contacts: Blue Theme (Updated with Sub-items) -->
     <div class="stat-card group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-blue-500/5 flex flex-col">
         <div class="p-6 flex-1">
-            <div class="flex items-center gap-3 mb-6">
+            <div class="flex items-center gap-3 mb-4">
                 <div class="p-2.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:bg-blue-500/20"><i data-lucide="phone-incoming" class="w-5 h-5"></i></div>
                 <span class="text-lg font-black uppercase">Total Contacts</span>
             </div>
-            <p id="val-total" class="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">0</p>
+            
+            <div class="flex items-end justify-between mb-4">
+                <p id="val-total" class="text-4xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">0</p>
+                <div class="flex flex-col gap-1 border-l border-slate-100 dark:border-slate-800 pl-4">
+                    <div class="flex items-center justify-between gap-4">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">ผ่าน IVR</span>
+                        <span id="val-ivr" class="text-sm font-bold text-blue-500">0</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">ผ่าน Agent</span>
+                        <span id="val-agent" class="text-sm font-bold text-indigo-500">0</span>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- Goal Footer -->
         <div class="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/20 border-t border-blue-100/50 dark:border-blue-800/50">
@@ -168,39 +181,41 @@
         </div>
     </div>
 
-    <!-- QC Voice: Purple Theme -->
-    <div class="stat-card group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-purple-500/5 flex flex-col">
-        <div class="p-6 flex-1">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="p-2.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:bg-purple-500/20"><i data-lucide="mic" class="w-5 h-5"></i></div>
-               <span class="text-lg font-black uppercase">QC Score (Voice)</span>
-            </div>
-            <p id="val-qc-voice" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-purple-600 to-indigo-500 tracking-tighter">0%</p>
+<!-- QC Score: Overall (Updated to show Voice & Non-Voice) -->
+<div class="stat-card group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-purple-500/5 flex flex-col">
+    <div class="p-6 flex-1">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="p-2.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:bg-purple-500/20"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
+           <span class="text-lg font-black uppercase">QC Score (Total)</span>
         </div>
-        <div class="px-6 py-3 bg-purple-50/50 dark:bg-purple-900/20 border-t border-purple-100/50 dark:border-purple-800/50">
-            <div class="flex justify-between items-center">
-                <span class="text-[10px] font-black text-purple-600/60 dark:text-purple-400/60 uppercase">Benchmark</span>
-                <span id="target-qc-voice" class="text-xs font-black text-purple-600 dark:text-purple-400">90%</span>
+        
+        <div class="flex items-end justify-between mb-4">
+            <div>
+                <!-- ตัวเลขเฉลี่ยรวม -->
+                <p id="val-qc-total" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-purple-600 to-indigo-500 tracking-tighter leading-none">0%</p>
+            </div>
+            <!-- รายการย่อย -->
+            <div class="flex flex-col gap-1 border-l border-slate-100 dark:border-slate-800 pl-4 text-right">
+                <div class="flex items-center justify-between gap-4">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Voice</span>
+                    <span id="val-qc-voice-sub" class="text-sm font-bold text-purple-500">0%</span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Non-Voice</span>
+                    <span id="val-qc-nv-sub" class="text-sm font-bold text-indigo-500">0%</span>
+                </div>
             </div>
         </div>
     </div>
+    <div class="px-6 py-3 bg-purple-50/50 dark:bg-purple-900/20 border-t border-purple-100/50 dark:border-purple-800/50">
+        <div class="flex justify-between items-center">
+            <span class="text-[10px] font-black text-purple-600/60 dark:text-purple-400/60 uppercase">Benchmark</span>
+            <span id="target-qc-total" class="text-xs font-black text-purple-600 dark:text-purple-400">90%</span>
+        </div>
+    </div>
+</div>
 
-    <!-- QC Non-Voice: Indigo Theme -->
-    <div class="stat-card group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl shadow-indigo-500/5 flex flex-col">
-        <div class="p-6 flex-1">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20"><i data-lucide="message-square" class="w-5 h-5"></i></div>
-                <span class="text-lg font-black uppercase">QC Score (Non-Voice)</span>
-            </div>
-            <p id="val-qc-nv" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-600 to-blue-500 tracking-tighter">0%</p>
-        </div>
-        <div class="px-6 py-3 bg-indigo-50/50 dark:bg-indigo-900/20 border-t border-indigo-100/50 dark:border-indigo-800/50">
-            <div class="flex justify-between items-center">
-                <span class="text-[10px] font-black text-indigo-600/60 dark:text-indigo-400/60 uppercase">Benchmark</span>
-                <span id="target-qc-nv" class="text-xs font-black text-indigo-600 dark:text-indigo-400">90%</span>
-            </div>
-        </div>
-    </div>
+    
 </section>
 
                 <!-- VOICE CHANNEL SUMMARY -->
@@ -355,7 +370,7 @@
     </div>
 
     <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwMj7RbtY4LvNHBfFaxi0lMv6ycm5mz4x44E8cAYZyIJ-X1Ue15jLYu2AOOiZN3dokO1g/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyxVwgUbPj5wOguo-wcad4p6yu_c774AvUAllewtNWdcifHZVQiBDrpKokolocJ6XnWDw/exec";
     
     // 1. GLOBAL VARIABLES
     let combinedChart; 
@@ -507,14 +522,42 @@ function initCharts() {
             document.getElementById('sync-dot').className = `w-2.5 h-2.5 rounded-full ${isToday ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`;
 
             // KPIs
-           const m = data.monthlySummary || data.summary;
-document.getElementById('val-total').innerText = (m.total || 0).toLocaleString();
-document.getElementById('val-csat').innerText = (m.csat || 0).toFixed(1);
-document.getElementById('val-abd').innerText = (m.abd || 0).toFixed(1) + "%";
+// 1. ดึงข้อมูลจาก API
+ const m = data.monthlySummary || data.summary;
 
-// อัปเดต QC แยกฝั่ง
-document.getElementById('val-qc-voice').innerText = (m.qcVoice || 0).toFixed(1) + "%";
-document.getElementById('val-qc-nv').innerText = (m.qcNonVoice || 0).toFixed(1) + "%";
+        // 1. อัปเดต Total Contacts (หลัก + ย่อย)
+        if (document.getElementById('val-total')) {
+            document.getElementById('val-total').innerText = (m.total || 0).toLocaleString();
+        }
+        if (document.getElementById('val-ivr')) {
+            document.getElementById('val-ivr').innerText = (m.ivrTotal || 0).toLocaleString();
+        }
+        if (document.getElementById('val-agent')) {
+            document.getElementById('val-agent').innerText = (m.agentTotal || 0).toLocaleString();
+        }
+
+        // 2. อัปเดต CSAT และ Abandoned
+        if (document.getElementById('val-csat')) {
+            document.getElementById('val-csat').innerText = (m.csat || 0).toFixed(1);
+        }
+        if (document.getElementById('val-abd')) {
+            document.getElementById('val-abd').innerText = (m.abd || 0).toFixed(1) + "%";
+        }
+
+        // 3. อัปเดต QC Score (รวม และ แยกย่อย)
+        const qcV = m.qcVoice || 0;
+        const qcN = m.qcNonVoice || 0;
+        const qcTotal = (qcV + qcN) / 2; // คำนวณค่าเฉลี่ย
+
+        if (document.getElementById('val-qc-total')) {
+            document.getElementById('val-qc-total').innerText = qcTotal.toFixed(1) + "%";
+        }
+        if (document.getElementById('val-qc-voice-sub')) {
+            document.getElementById('val-qc-voice-sub').innerText = qcV.toFixed(1) + "%";
+        }
+        if (document.getElementById('val-qc-nv-sub')) {
+            document.getElementById('val-qc-nv-sub').innerText = qcN.toFixed(1) + "%";
+        }
 
             // Voice Summary
             const d = data.summary;
