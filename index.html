@@ -450,37 +450,69 @@ function initCharts() {
     
     // 1. กราฟ Combined (Bar & Line)
     combinedChart = new Chart(document.getElementById('combinedChart').getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: timeLabels,
-            datasets: [
-                { label: 'Inbound', type: 'line', data: [], borderColor: '#3b82f6', tension: 0.3, pointRadius: 2, borderWidth: 2 },
-                { label: 'Answered', type: 'line', data: [], borderColor: '#22c55e', tension: 0.3, pointRadius: 2, borderWidth: 2 },
-                { label: 'Abandoned', type: 'line', data: [], borderColor: '#ef4444', tension: 0.3, pointRadius: 2, borderWidth: 2 },
-                { label: 'Online', data: [], backgroundColor: 'rgba(59, 130, 246, 0.1)', yAxisID: 'y1', borderRadius: 4 }
-            ]
+    type: 'bar',
+    data: {
+        labels: timeLabels,
+        datasets: [
+            { label: 'Inbound', type: 'line', data: [], borderColor: '#3b82f6', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+            { label: 'Answered', type: 'line', data: [], borderColor: '#22c55e', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+            { label: 'Abandoned', type: 'line', data: [], borderColor: '#ef4444', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+            { label: 'Online', data: [], backgroundColor: 'rgba(59, 130, 246, 0.1)', yAxisID: 'y1', borderRadius: 4 }
+        ]
+    },
+    options: {
+        responsive: true, 
+        maintainAspectRatio: false,
+        // --- ส่วนที่เพิ่ม/แก้ไขใหม่ ---
+        interaction: {
+            mode: 'index',     // ให้แสดงข้อมูลทุกตัวที่มี index (เวลา) ตรงกัน
+            intersect: false,  // ชี้ตรงไหนของแท่ง/เส้นก็ได้ Tooltip จะขึ้นทันที
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                y: { grid: { color: colors.grid }, ticks: { color: colors.text } },
-                y1: { position: 'right', display: false },
-                x: { grid: { display: false }, ticks: { color: colors.text, font: { size: 9 } } }
+        // --------------------------
+        scales: {
+            y: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+            y1: { position: 'right', display: false },
+            x: { grid: { display: false }, ticks: { color: colors.text, font: { size: 9 } } }
+        },
+        plugins: { 
+            legend: { 
+                labels: { 
+                    color: colors.text, 
+                    font: { size: 10, weight: 'bold' },
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    padding: 15
+                } 
             },
-            plugins: { 
-                legend: { 
-                    labels: { 
-                        color: colors.text, 
-                        font: { size: 10, weight: 'bold' },
-                        usePointStyle: true,   // <--- เปิดใช้งานการใช้รูปทรงจุด
-                        pointStyle: 'circle',  // <--- กำหนดให้เป็นวงกลม
-                        padding: 15
-                    } 
-                },
-                datalabels: { display: false }
-            }
+            // --- ส่วนที่เพิ่ม/แก้ไขใหม่ สำหรับ Tooltip ---
+            tooltip: {
+    enabled: true,
+    usePointStyle: true,        // <--- เพิ่มบรรทัดนี้: เปลี่ยนสี่เหลี่ยมเป็นวงกลม
+    boxPadding: 5,              // เพิ่มระยะห่างระหว่างวงกลมกับข้อความ (ช่วยให้ดูสวยขึ้น)
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    titleFont: { size: 14, family: 'IBM Plex Sans Thai' },
+    bodyFont: { size: 13, family: 'IBM Plex Sans Thai' },
+    padding: 10,
+    cornerRadius: 8,
+    callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) label += ': ';
+                        if (context.parsed.y !== null) {
+                            label += context.parsed.y.toLocaleString();
+                            // เพิ่มหน่วยตามประเภทข้อมูล
+                            if (label.includes('Online')) label += ' คน';
+                            else label += ' สาย';
+                        }
+                        return label;
+                    }
+                }
+            },
+            // ------------------------------------------
+            datalabels: { display: false }
         }
-    });
+    }
+});
 
     // 2. กราฟวงกลม (Category Chart)
     categoryChart = new Chart(document.getElementById('categoryChart').getContext('2d'), {
